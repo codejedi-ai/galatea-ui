@@ -1,7 +1,6 @@
 "use client"
 
-import { useState } from "react"
-import { motion, type PanInfo, useMotionValue, useTransform } from "framer-motion"
+import { motion, useMotionValue, useTransform } from "framer-motion"
 import { Heart, X, Star, MessageCircle } from "lucide-react"
 import { SwipeCard } from "./swipe-card"
 
@@ -49,29 +48,16 @@ const aiCompanions = [
   },
 ]
 
-export function SwipeInterface() {
-  const [currentIndex, setCurrentIndex] = useState(0)
-  const [lastDirection, setLastDirection] = useState<string | null>(null)
+// Facade: the deck is display-only. Swipe, drag, and the action buttons are no-ops.
+const handleSwipe = (_direction: string) => {}
 
+export function SwipeInterface() {
   const x = useMotionValue(0)
   const rotate = useTransform(x, [-200, 200], [-30, 30])
   const cardOpacity = useTransform(x, [-200, -150, 0, 150, 200], [0, 1, 1, 1, 0])
 
-  const handleSwipe = (direction: string) => {
-    setLastDirection(direction)
-    setCurrentIndex((prevIndex) => (prevIndex + 1) % aiCompanions.length)
-  }
-
-  const handleDragEnd = (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-    if (info.offset.x > 100) {
-      handleSwipe("right")
-    } else if (info.offset.x < -100) {
-      handleSwipe("left")
-    }
-  }
-
-  const currentCompanion = aiCompanions[currentIndex]
-  const nextCompanion = aiCompanions[(currentIndex + 1) % aiCompanions.length]
+  const currentCompanion = aiCompanions[0]
+  const nextCompanion = aiCompanions[1]
 
   return (
     <div className="flex flex-col h-full">
@@ -104,9 +90,6 @@ export function SwipeInterface() {
               rotate,
               opacity: cardOpacity,
             }}
-            drag="x"
-            dragConstraints={{ left: 0, right: 0 }}
-            onDragEnd={handleDragEnd}
           >
             <SwipeCard
               companion={currentCompanion}

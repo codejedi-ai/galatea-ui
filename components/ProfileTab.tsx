@@ -22,7 +22,7 @@ export function ProfileTab() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    console.log('Profile updated:', formData)
+    // Facade: saving is display-only. Nothing is persisted.
     setIsEditing(false)
   }
 

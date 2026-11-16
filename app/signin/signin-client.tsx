@@ -8,7 +8,7 @@ import { LoadingScreen } from "@/components/loading"
 import Image from "next/image"
 import { authClient } from "@/lib/api-client"
 
-export default function SignInPage() {
+export default function SignInClient({ testHint }: { testHint?: { email: string; password: string } }) {
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -19,7 +19,7 @@ export default function SignInPage() {
       setIsLoading(true)
       setLoadingMessage("Authenticating...")
       await authClient.signIn({ email, password })
-      router.push("/dashboard")
+      router.push("/start")
     } catch (err) {
       setIsLoading(false)
       setError("Invalid email or password. Please try again.")
@@ -56,6 +56,11 @@ export default function SignInPage() {
           </div>
         )}
         <AuthCard onSignIn={handleSignIn} />
+        {testHint && (
+          <p className="mt-4 text-center text-xs text-white/70">
+            Development test login: {testHint.email} / {testHint.password}
+          </p>
+        )}
       </div>
 
       {/* Animated particles */}

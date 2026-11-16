@@ -15,5 +15,5 @@
 }
 
 .swipe-card {
-  @apply absolute w-full h-full rounded-2xl overflow-hidden transition-all duration-300 ease-out;
+  @apply absolute w-full h-full overflow-hidden transition-all duration-300 ease-out;
 }

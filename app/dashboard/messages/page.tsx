@@ -5,6 +5,7 @@ import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
+import { Sidebar } from "@/components/swipe/sidebar"
 import { Search, Send, Paperclip, MoreVertical, Phone, Video } from "lucide-react"
 
 // Mock data for conversations
@@ -92,42 +93,22 @@ const mockMessages = [
 ]
 
 export default function MessagesPage() {
-  const [activeConversation, setActiveConversation] = useState(mockConversations[0])
+  const activeConversation = mockConversations[0]
   const [messageText, setMessageText] = useState("")
-  const [messages, setMessages] = useState(mockMessages)
+  const messages = mockMessages
   const [searchQuery, setSearchQuery] = useState("")
 
   const filteredConversations = mockConversations.filter((convo) =>
     convo.name.toLowerCase().includes(searchQuery.toLowerCase()),
   )
 
-  const handleSendMessage = () => {
-    if (!messageText.trim()) return
-
-    const newMessage = {
-      id: Date.now().toString(),
-      senderId: "user",
-      text: messageText,
-      time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-      isUser: true,
-    }
-
-    setMessages([...messages, newMessage])
-    setMessageText("")
-
-    setTimeout(() => {
-      const aiResponse = {
-        id: (Date.now() + 1).toString(),
-        senderId: activeConversation.id,
-        text: "That's an interesting perspective! I'd love to hear more about your thoughts on this topic.",
-        time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-        isUser: false,
-      }
-      setMessages((prev) => [...prev, aiResponse])
-    }, 1500)
-  }
+  // Facade: sending is display-only. Nothing is stored and no reply is generated.
+  const handleSendMessage = () => {}
 
   return (
+    <div className="flex h-screen overflow-hidden">
+      <Sidebar />
+      <main className="flex-1 min-w-0">
     <div className="h-screen flex flex-col">
       <div className="flex h-full">
         {/* Conversation List */}
@@ -151,7 +132,7 @@ export default function MessagesPage() {
                 className={`flex items-center p-4 cursor-pointer hover:bg-muted transition-colors ${
                   activeConversation.id === conversation.id ? "bg-muted" : ""
                 }`}
-                onClick={() => setActiveConversation(conversation)}
+                onClick={() => {}}
               >
                 <div className="relative mr-3">
                   <Image
@@ -286,6 +267,8 @@ export default function MessagesPage() {
           )}
         </div>
       </div>
+    </div>
+      </main>
     </div>
   )
 }

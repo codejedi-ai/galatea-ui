@@ -1,25 +1,8 @@
 "use client"
 
-import { useEffect, useState } from "react"
 import Image from "next/image"
 
-export function LoadingScreen({ message = "Sculpting your experience..." }: { message?: string }) {
-  const [progress, setProgress] = useState(0)
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(interval)
-          return 100
-        }
-        return prev + 1
-      })
-    }, 30)
-
-    return () => clearInterval(interval)
-  }, [])
-
+export function LoadingScreen({ message = "Loading...", progress }: { message?: string; progress?: number }) {
   return (
     <div className="fixed inset-0 bg-background flex flex-col items-center justify-center z-50">
       <div className="w-full max-w-md px-4 flex flex-col items-center">
@@ -56,23 +39,35 @@ export function CircleLoader() {
 }
 
 interface GalateaAIBarLoaderProps {
-  progress: number
+  /** 0-100 when real progress is known; omit for an indeterminate bar. */
+  progress?: number
   message: string
 }
 
 export function GalateaAIBarLoader({ progress, message }: GalateaAIBarLoaderProps) {
+  const determinate = typeof progress === "number" && Number.isFinite(progress)
+  const clamped = determinate ? Math.min(100, Math.max(0, progress)) : 0
   return (
     <div className="w-full">
       <h1 className="text-3xl font-bold text-foreground mb-8 text-center">Galatea AI</h1>
-      <div className="w-full h-2 bg-muted rounded-full mb-4 overflow-hidden">
-        <div
-          className="h-full bg-gradient-to-r from-primary to-primary/70 rounded-full transition-all duration-300 ease-out"
-          style={{ width: `${progress}%` }}
-        />
+      <div
+        className="relative w-full h-2 bg-muted rounded-full mb-4 overflow-hidden"
+        role="progressbar"
+        aria-label={message}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={determinate ? Math.round(clamped) : undefined}
+      >
+        {determinate ? (
+          <div
+            className="h-full bg-gradient-to-r from-primary to-primary/70 rounded-full transition-all duration-300 ease-out"
+            style={{ width: `${clamped}%` }}
+          />
+        ) : (
+          <div className="absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-primary to-primary/70 rounded-full animate-pulse" />
+        )}
       </div>
-      <p className="text-primary text-lg font-medium text-center">
-        {progress < 100 ? message : "Ready"}
-      </p>
+      <p className="text-primary text-lg font-medium text-center">{message}</p>
     </div>
   )
 }

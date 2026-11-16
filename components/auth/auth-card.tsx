@@ -35,12 +35,8 @@ export function AuthCard({ onSignIn }: AuthCardProps) {
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsLoading(true)
-
-    setTimeout(() => {
-      setIsLoading(false)
-      setResetEmailSent(true)
-    }, 1500)
+    // No password-reset API exists yet; say so instead of pretending.
+    setResetEmailSent(true)
   }
 
   return (
@@ -111,11 +107,8 @@ export function AuthCard({ onSignIn }: AuthCardProps) {
               </p>
 
               {resetEmailSent ? (
-                <div className="bg-primary/10 border border-primary/30 rounded-md p-4 mb-6">
-                  <p className="text-foreground">
-                    If an account exists with the email <span className="text-primary">{forgotPasswordEmail}</span>
-                    , you will receive a password reset link shortly.
-                  </p>
+                <div role="status" className="bg-muted border border-border rounded-md p-4 mb-6">
+                  <p className="text-foreground">Password reset isn&apos;t available yet.</p>
                 </div>
               ) : (
                 <form onSubmit={handleForgotPassword} className="space-y-4">
@@ -134,9 +127,8 @@ export function AuthCard({ onSignIn }: AuthCardProps) {
                   <Button
                     type="submit"
                     className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
-                    disabled={isLoading}
                   >
-                    {isLoading ? "Sending..." : "Send Reset Link"}
+                    Send Reset Link
                   </Button>
                 </form>
               )}

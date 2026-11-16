@@ -3,20 +3,11 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport, type UIMessage } from "ai"
-import { AlertCircle, KeyRound, Plus, Send, Square } from "lucide-react"
+import { AlertCircle, KeyRound, PanelLeftClose, PanelLeftOpen, Plus, Send, Square } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { Textarea } from "@/components/ui/textarea"
-
-const STORAGE_KEY = "galatea.companion.conversationId"
-
-function newConversationId() {
-  return typeof crypto !== "undefined" && "randomUUID" in crypto
-    ? crypto.randomUUID()
-    : `c-${Date.now()}-${Math.random().toString(36).slice(2)}`
-}
+import type { ConversationActivity } from "@/lib/flow/conversations"
 
 function isMissingCredential(error: Error | undefined) {
   return !!error && /missing_credential|No model key configured/i.test(error.message)
@@ -29,82 +20,129 @@ function messageText(m: UIMessage) {
     .join("")
 }
 
-export function CompanionChat() {
-  const [conversationId, setConversationId] = useState<string | null>(null)
-  const [initialMessages, setInitialMessages] = useState<UIMessage[] | null>(null)
-
-  // Stable conversation id, persisted across reloads.
-  useEffect(() => {
-    let id = localStorage.getItem(STORAGE_KEY)
-    if (!id) {
-      id = newConversationId()
-      localStorage.setItem(STORAGE_KEY, id)
-    }
-    setConversationId(id)
-  }, [])
+export function CompanionChat({
+  conversationId,
+  title,
+  onNew,
+  onActivity,
+  panelOpen,
+  mobilePanelOpen,
+  onTogglePanel,
+  onToggleMobilePanel,
+}: {
+  conversationId: string | null
+  title: string
+  onNew: () => void
+  onActivity: (id: string, patch: ConversationActivity) => void
+  panelOpen: boolean
+  mobilePanelOpen: boolean
+  onTogglePanel: () => void
+  onToggleMobilePanel: () => void
+}) {
+  const [history, setHistory] = useState<{ id: string; messages: UIMessage[] } | null>(null)
+  const initialMessages = history && history.id === conversationId ? history.messages : null
 
   // Load history whenever the conversation changes.
   useEffect(() => {
     if (!conversationId) return
     let cancelled = false
-    setInitialMessages(null)
     fetch(`/api/companion/conversations/${encodeURIComponent(conversationId)}`)
       .then((r) => (r.ok ? r.json() : { messages: [] }))
       .then((data: { messages?: Array<{ role: "user" | "assistant"; text: string }> }) => {
         if (cancelled) return
-        setInitialMessages(
-          (data.messages ?? []).map((m, i) => ({
+        setHistory({
+          id: conversationId,
+          messages: (data.messages ?? []).map((m, i) => ({
             id: `history-${i}`,
             role: m.role,
             parts: [{ type: "text", text: m.text }],
           })),
-        )
+        })
       })
-      .catch(() => !cancelled && setInitialMessages([]))
+      .catch(() => {
+        if (!cancelled) setHistory({ id: conversationId, messages: [] })
+      })
     return () => {
       cancelled = true
     }
   }, [conversationId])
 
-  const startNew = () => {
-    const id = newConversationId()
-    localStorage.setItem(STORAGE_KEY, id)
-    setConversationId(id)
-  }
-
   return (
-    <Card className="flex h-[calc(100vh-8rem)] flex-col">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0">
-        <CardTitle>Companion</CardTitle>
-        <Button variant="outline" size="sm" onClick={startNew} disabled={!conversationId}>
+    <div className="flex h-full min-h-0 w-full flex-1 flex-col">
+      <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border px-4 py-3 md:px-6">
+        <div className="flex min-w-0 items-center gap-2">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="hidden shrink-0 md:inline-flex"
+            aria-label={panelOpen ? "Collapse chats" : "Expand chats"}
+            aria-expanded={panelOpen}
+            aria-controls="section-panel"
+            onClick={onTogglePanel}
+          >
+            {panelOpen ? <PanelLeftClose className="h-5 w-5" /> : <PanelLeftOpen className="h-5 w-5" />}
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="shrink-0 md:hidden"
+            aria-label={mobilePanelOpen ? "Collapse chats" : "Expand chats"}
+            aria-expanded={mobilePanelOpen}
+            aria-controls="section-panel-mobile"
+            onClick={onToggleMobilePanel}
+          >
+            {mobilePanelOpen ? <PanelLeftClose className="h-5 w-5" /> : <PanelLeftOpen className="h-5 w-5" />}
+          </Button>
+          <h1 className="truncate text-lg font-semibold leading-none tracking-tight">{title}</h1>
+        </div>
+        <Button variant="outline" size="sm" onClick={onNew} disabled={!conversationId}>
           <Plus className="mr-1 h-4 w-4" />
-          New conversation
+          New chat
         </Button>
-      </CardHeader>
-      <CardContent className="flex min-h-0 flex-1 flex-col">
-        {conversationId && initialMessages ? (
-          <ChatSession key={conversationId} conversationId={conversationId} initialMessages={initialMessages} />
-        ) : (
+      </div>
+      {conversationId && initialMessages ? (
+        <ChatSession
+          key={conversationId}
+          conversationId={conversationId}
+          initialMessages={initialMessages}
+          onActivity={onActivity}
+        />
+      ) : (
+        <div className="min-h-0 flex-1 px-4 py-6 md:px-6">
           <p className="text-muted-foreground">Loading...</p>
-        )}
-      </CardContent>
-    </Card>
+        </div>
+      )}
+    </div>
   )
 }
 
-function ChatSession({ conversationId, initialMessages }: { conversationId: string; initialMessages: UIMessage[] }) {
+function ChatSession({
+  conversationId,
+  initialMessages,
+  onActivity,
+}: {
+  conversationId: string
+  initialMessages: UIMessage[]
+  onActivity: (id: string, patch: ConversationActivity) => void
+}) {
   const transport = useMemo(
     () =>
       new DefaultChatTransport({
         api: "/api/companion/chat",
         // The server only reads the last user message; history lives server-side.
-        prepareSendMessagesRequest: ({ id, messages }) => ({ body: { id, messages: messages.slice(-1) } }),
+        prepareSendMessagesRequest: ({ id, messages }) => ({
+          body: { id, messages: messages.slice(-1) },
+        }),
       }),
     [],
   )
+  // Seed once per session. Later sidebar updates must not push this array back into the hook.
+  const seedMessages = useRef(initialMessages)
   const { messages, sendMessage, status, stop, error } = useChat({
     id: conversationId,
-    messages: initialMessages,
+    messages: seedMessages.current,
     transport,
   })
   const [input, setInput] = useState("")
@@ -115,6 +153,18 @@ function ChatSession({ conversationId, initialMessages }: { conversationId: stri
     bottomRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
 
+  useEffect(() => {
+    const firstUser = messages.find((m) => m.role === "user" && messageText(m))
+    const last = [...messages].reverse().find((m) => messageText(m))
+    if (!firstUser && !last) return
+    // Skip assistant tokens while a reply is still streaming.
+    if (busy && last?.role !== "user") return
+    onActivity(conversationId, {
+      title: firstUser ? messageText(firstUser) : undefined,
+      preview: last ? messageText(last) : undefined,
+    })
+  }, [busy, conversationId, messages, onActivity])
+
   const submit = () => {
     const text = input.trim()
     if (!text || busy) return
@@ -124,8 +174,8 @@ function ChatSession({ conversationId, initialMessages }: { conversationId: stri
 
   return (
     <>
-      <ScrollArea className="min-h-0 flex-1 pr-4">
-        <div className="space-y-3 pb-2">
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 md:px-6">
+        <div className="mx-auto w-full max-w-4xl space-y-3 pb-2">
           {messages.length === 0 && (
             <p className="py-12 text-center text-muted-foreground">Say hello to start the conversation.</p>
           )}
@@ -147,56 +197,58 @@ function ChatSession({ conversationId, initialMessages }: { conversationId: stri
           })}
           <div ref={bottomRef} />
         </div>
-      </ScrollArea>
+      </div>
 
-      {error &&
-        (isMissingCredential(error) ? (
-          <Alert className="mb-3">
-            <KeyRound className="h-4 w-4" />
-            <AlertTitle>No model key configured</AlertTitle>
-            <AlertDescription>
-              Set AI_GATEWAY_API_KEY on the server (or add a key under Settings, Integrations) to chat with your
-              companion.
-            </AlertDescription>
-          </Alert>
-        ) : (
-          <Alert variant="destructive" className="mb-3">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Something went wrong</AlertTitle>
-            <AlertDescription>Your companion could not reply. Please try again.</AlertDescription>
-          </Alert>
-        ))}
+      <div className="shrink-0 border-t border-border bg-galatea-darker px-4 py-3 md:px-6">
+        {error &&
+          (isMissingCredential(error) ? (
+            <Alert className="mb-3">
+              <KeyRound className="h-4 w-4" />
+              <AlertTitle>No model key configured</AlertTitle>
+              <AlertDescription>
+                Set AI_GATEWAY_API_KEY on the server (or add a key under Settings, Integrations) to chat with your
+                companion.
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <Alert variant="destructive" className="mb-3">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Something went wrong</AlertTitle>
+              <AlertDescription>Your companion could not reply. Please try again.</AlertDescription>
+            </Alert>
+          ))}
 
-      <form
-        className="flex items-end gap-2 pt-2"
-        onSubmit={(e) => {
-          e.preventDefault()
-          submit()
-        }}
-      >
-        <Textarea
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault()
-              submit()
-            }
+        <form
+          className="mx-auto flex w-full max-w-4xl items-end gap-2"
+          onSubmit={(e) => {
+            e.preventDefault()
+            submit()
           }}
-          placeholder="Message your companion..."
-          rows={2}
-          className="resize-none"
-        />
-        {busy ? (
-          <Button type="button" variant="outline" onClick={() => void stop()} aria-label="Stop">
-            <Square className="h-4 w-4" />
-          </Button>
-        ) : (
-          <Button type="submit" disabled={!input.trim()} aria-label="Send">
-            <Send className="h-4 w-4" />
-          </Button>
-        )}
-      </form>
+        >
+          <Textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault()
+                submit()
+              }
+            }}
+            placeholder="Message your companion..."
+            rows={2}
+            className="resize-none"
+          />
+          {busy ? (
+            <Button type="button" variant="outline" onClick={() => void stop()} aria-label="Stop">
+              <Square className="h-4 w-4" />
+            </Button>
+          ) : (
+            <Button type="submit" disabled={!input.trim()} aria-label="Send">
+              <Send className="h-4 w-4" />
+            </Button>
+          )}
+        </form>
+      </div>
     </>
   )
 }

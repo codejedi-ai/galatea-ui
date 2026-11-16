@@ -1,13 +1,12 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Select } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
-import Cookies from "js-cookie"
 
 export function ProfileSetupForm() {
   const [formData, setFormData] = useState({
@@ -20,23 +19,13 @@ export function ProfileSetupForm() {
   })
   const [isSubmitted, setIsSubmitted] = useState(false)
 
-  useEffect(() => {
-    // Load profile data from cookies on component mount
-    const savedProfile = Cookies.get("userProfile")
-    if (savedProfile) {
-      setFormData(JSON.parse(savedProfile))
-    }
-  }, [])
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
   }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    // Save profile data to cookies
-    Cookies.set("userProfile", JSON.stringify(formData), { expires: 365 }) // Expires in 1 year
-    console.log("Profile saved:", formData)
+    // Facade: shows the saved state without writing a cookie or any other storage.
     setIsSubmitted(true)
   }
 

@@ -1,134 +1,166 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
+import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { Heart, MessageSquare, Settings, User, LogOut, Sparkles, Zap, Search, Bell, Bot, HeartHandshake, Mic, Plug, KeyRound } from "lucide-react"
+import { NAV_SECTIONS, getActiveItem } from "@/lib/nav/sections"
+import { Rail } from "@/components/nav/rail"
+import { SectionPanel } from "@/components/nav/section-panel"
+
+export interface SidebarPanelSlot {
+  id: string
+  className: string
+}
 
 interface SidebarProps {
   className?: string
+  /** Replaces the section menu. Used by the companion chat for its own conversation list. */
+  panel?: (slot: SidebarPanelSlot) => ReactNode
+  /** localStorage key for the open/closed state. A custom panel should use its own key. */
+  storageKey?: string
+  /** Controlled desktop panel. The chat page owns this so its top bar can toggle it. */
+  open?: boolean
+  onToggleDesktop?: () => void
+  mobileOpen?: boolean
+  onToggleMobile?: () => void
+  /** The chat page puts this control in its top bar instead of the rail. */
+  showToggle?: boolean
 }
 
-export function Sidebar({ className }: SidebarProps) {
-  const pathname = usePathname()
-  const [activeItem, setActiveItem] = useState("discover")
+export function usePersistedOpen(storageKey: string, defaultOpen = true) {
+  const [open, setOpen] = useState(defaultOpen)
 
   useEffect(() => {
-    if (pathname === "/") {
-      setActiveItem("discover")
-    } else if (pathname.startsWith("/profile")) {
-      setActiveItem("profile")
-    } else if (pathname.startsWith("/bots")) {
-      setActiveItem("bots")
-    } else if (pathname.startsWith("/matches")) {
-      setActiveItem("matches")
-    } else if (pathname.startsWith("/messages")) {
-      setActiveItem("messages")
-    } else if (pathname.startsWith("/search")) {
-      setActiveItem("search")
-    } else if (pathname.startsWith("/notifications")) {
-      setActiveItem("notifications")
-    } else if (pathname.startsWith("/boost")) {
-      setActiveItem("boost")
-    } else if (pathname.startsWith("/companion")) {
-      setActiveItem("companion")
-    } else if (pathname.startsWith("/voice")) {
-      setActiveItem("voice")
-    } else if (pathname.startsWith("/settings/agents")) {
-      setActiveItem("agents")
-    } else if (pathname.startsWith("/settings/integrations")) {
-      setActiveItem("integrations")
-    } else if (pathname.startsWith("/settings")) {
-      setActiveItem("settings")
+    try {
+      const stored = localStorage.getItem(storageKey)
+      if (stored === "true") setOpen(true)
+      else if (stored === "false") setOpen(false)
+    } catch {
+      // storage unavailable
     }
+  }, [storageKey])
+
+  const toggle = useCallback(() => {
+    setOpen((prev) => {
+      const next = !prev
+      try {
+        localStorage.setItem(storageKey, String(next))
+      } catch {
+        // ignore
+      }
+      return next
+    })
+  }, [storageKey])
+
+  return { open, toggle }
+}
+
+const STORAGE_KEY = "galatea.nav.panelOpen"
+const DESKTOP_PANEL_ID = "section-panel"
+const MOBILE_PANEL_ID = "section-panel-mobile"
+
+export function Sidebar({
+  className,
+  panel,
+  storageKey = STORAGE_KEY,
+  open: openProp,
+  onToggleDesktop,
+  mobileOpen: mobileOpenProp,
+  onToggleMobile,
+  showToggle = true,
+}: SidebarProps) {
+  const pathname = usePathname()
+  const router = useRouter()
+  const persisted = usePersistedOpen(storageKey)
+  const [mobileOpenState, setMobileOpenState] = useState(false)
+  const open = openProp ?? persisted.open
+  const mobileOpen = mobileOpenProp ?? mobileOpenState
+  const toggleDesktop = onToggleDesktop ?? persisted.toggle
+  const toggleMobile = useCallback(() => {
+    if (onToggleMobile) onToggleMobile()
+    else setMobileOpenState((v) => !v)
+  }, [onToggleMobile])
+  const closeMobile = useCallback(() => {
+    if (!mobileOpen) return
+    if (onToggleMobile) onToggleMobile()
+    else setMobileOpenState(false)
+  }, [mobileOpen, onToggleMobile])
+  const closeMobileRef = useRef(closeMobile)
+  closeMobileRef.current = closeMobile
+
+  // Close the mobile overlay on navigation.
+  useEffect(() => {
+    closeMobileRef.current()
   }, [pathname])
 
-  const menuItems = [
-    { id: "discover", label: "Discover", icon: Sparkles, href: "/discover" },
-    { id: "matches", label: "Matches", icon: Heart, href: "/matches", badge: 3 },
-    { id: "messages", label: "Messages", icon: MessageSquare, href: "/messages", badge: 5 },
-    { id: "search", label: "Search", icon: Search, href: "/search" },
-    { id: "notifications", label: "Notifications", icon: Bell, href: "/notifications", badge: 2 },
-    { id: "boost", label: "Boost Profile", icon: Zap, href: "/boost" },
-  ]
+  useEffect(() => {
+    if (!mobileOpen) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeMobileRef.current()
+    }
+    document.addEventListener("keydown", onKey)
+    return () => document.removeEventListener("keydown", onKey)
+  }, [mobileOpen])
 
-  const bottomMenuItems = [
-    { id: "profile", label: "Profile", icon: User, href: "/profile" },
-    { id: "bots", label: "My Bots", icon: Bot, href: "/bots" },
-    { id: "companion", label: "Companion", icon: HeartHandshake, href: "/companion" },
-    { id: "voice", label: "Voice", icon: Mic, href: "/voice" },
-    { id: "agents", label: "Agents", icon: Plug, href: "/settings/agents" },
-    { id: "integrations", label: "Integrations", icon: KeyRound, href: "/settings/integrations" },
-    { id: "settings", label: "Settings", icon: Settings, href: "/settings" },
-    { id: "logout", label: "Logout", icon: LogOut, href: "/logout" },
-  ]
+  const handleSignOut = async () => {
+    try {
+      await fetch("/api/auth/signout", { method: "POST" })
+    } finally {
+      router.replace("/")
+      router.refresh()
+    }
+  }
+
+  const active = getActiveItem(pathname)
+  const panelSection = active?.section ?? NAV_SECTIONS[0]
+  const activeHref = active?.item.href ?? null
 
   return (
-    <div className={cn("flex flex-col h-full bg-card border-r border-border w-64 py-6", className)}>
-      <div className="px-6 mb-8">
-        <Link href="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-            <Heart className="w-4 h-4 text-primary-foreground" />
-          </div>
-          <span className="text-xl font-bold text-foreground">
-            Galatea<span className="text-primary">.AI</span>
-          </span>
-        </Link>
-      </div>
+    <div className={cn("relative flex h-full shrink-0", className)}>
+      <Rail
+        activeSectionId={active?.section.id ?? null}
+        desktopPanelId={DESKTOP_PANEL_ID}
+        mobilePanelId={MOBILE_PANEL_ID}
+        desktopOpen={open}
+        mobileOpen={mobileOpen}
+        onToggleDesktop={toggleDesktop}
+        onToggleMobile={toggleMobile}
+        onSignOut={handleSignOut}
+        showToggle={showToggle}
+      />
 
-      <div className="flex-1 overflow-y-auto px-3">
-        <nav className="space-y-1">
-          {menuItems.map((item) => (
-            <Link
-              key={item.id}
-              href={item.href}
-              className={cn(
-                "sidebar-item group",
-                activeItem === item.id ? "sidebar-item-active" : "sidebar-item-inactive",
-              )}
-            >
-              <item.icon
-                className={cn(
-                  "w-5 h-5",
-                  activeItem === item.id ? "text-primary" : "text-muted-foreground group-hover:text-foreground",
-                )}
-              />
-              <span>{item.label}</span>
-              {item.badge && (
-                <div className="ml-auto bg-primary text-primary-foreground text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                  {item.badge}
-                </div>
-              )}
-            </Link>
-          ))}
-        </nav>
-      </div>
+      {open &&
+        (panel ? (
+          panel({ id: DESKTOP_PANEL_ID, className: "hidden md:flex" })
+        ) : (
+          <SectionPanel
+            id={DESKTOP_PANEL_ID}
+            section={panelSection}
+            activeHref={activeHref}
+            className="hidden md:flex"
+          />
+        ))}
 
-      <div className="mt-auto px-3">
-        <div className="pt-4 border-t border-border">
-          <nav className="space-y-1">
-            {bottomMenuItems.map((item) => (
-              <Link
-                key={item.id}
-                href={item.href}
-                className={cn(
-                  "sidebar-item group",
-                  activeItem === item.id ? "sidebar-item-active" : "sidebar-item-inactive",
-                )}
-              >
-                <item.icon
-                  className={cn(
-                    "w-5 h-5",
-                    activeItem === item.id ? "text-primary" : "text-muted-foreground group-hover:text-foreground",
-                  )}
-                />
-                <span>{item.label}</span>
-              </Link>
-            ))}
-          </nav>
+      {mobileOpen && (
+        <div className="md:hidden">
+          <button
+            type="button"
+            aria-label="Close section menu"
+            onClick={closeMobile}
+            className="fixed inset-0 z-40 bg-black/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          />
+          {panel ? (
+            panel({ id: MOBILE_PANEL_ID, className: "absolute left-16 top-0 z-50 flex shadow-lg" })
+          ) : (
+            <SectionPanel
+              id={MOBILE_PANEL_ID}
+              section={panelSection}
+              activeHref={activeHref}
+              className="absolute left-16 top-0 z-50 flex shadow-lg"
+            />
+          )}
         </div>
-      </div>
+      )}
     </div>
   )
 }
