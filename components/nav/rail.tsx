@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { Heart, LogOut, PanelLeftClose, PanelLeftOpen } from "lucide-react"
+import { LogOut, PanelLeftClose, PanelLeftOpen } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { NAV_SECTIONS } from "@/lib/nav/sections"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -69,16 +69,22 @@ export function Rail({
         aria-label="Sections"
         className="flex h-full w-16 shrink-0 flex-col items-center gap-2 border-r border-border bg-card py-4"
       >
-        <Link
-          href="/"
-          aria-label="Galatea home"
-          className={cn(
-            "mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-primary",
-            focusRing,
-          )}
-        >
-          <Heart className="h-5 w-5 text-primary-foreground" />
-        </Link>
+        {showToggle && (
+          <>
+            <PanelToggle
+              open={desktopOpen}
+              panelId={desktopPanelId}
+              onToggle={onToggleDesktop}
+              className="mb-2 hidden md:flex"
+            />
+            <PanelToggle
+              open={mobileOpen}
+              panelId={mobilePanelId}
+              onToggle={onToggleMobile}
+              className="mb-2 md:hidden"
+            />
+          </>
+        )}
 
         {NAV_SECTIONS.map((section) => {
           const active = section.id === activeSectionId
@@ -101,22 +107,6 @@ export function Rail({
         })}
 
         <div className="mt-auto flex flex-col items-center gap-2">
-          {showToggle && (
-            <>
-              <PanelToggle
-                open={desktopOpen}
-                panelId={desktopPanelId}
-                onToggle={onToggleDesktop}
-                className="hidden md:flex"
-              />
-              <PanelToggle
-                open={mobileOpen}
-                panelId={mobilePanelId}
-                onToggle={onToggleMobile}
-                className="md:hidden"
-              />
-            </>
-          )}
           <Tooltip>
             <TooltipTrigger asChild>
               <button type="button" onClick={onSignOut} aria-label="Sign out" className={railBtn}>

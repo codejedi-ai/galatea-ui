@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils"
 import { NAV_SECTIONS, getActiveItem } from "@/lib/nav/sections"
 import { Rail } from "@/components/nav/rail"
 import { SectionPanel } from "@/components/nav/section-panel"
+import { SidePanel } from "@/components/nav/side-panel"
 
 export interface SidebarPanelSlot {
   id: string
@@ -35,10 +36,11 @@ export function usePersistedOpen(storageKey: string, defaultOpen = true) {
       const stored = localStorage.getItem(storageKey)
       if (stored === "true") setOpen(true)
       else if (stored === "false") setOpen(false)
+      else setOpen(defaultOpen)
     } catch {
-      // storage unavailable
+      setOpen(defaultOpen)
     }
-  }, [storageKey])
+  }, [storageKey, defaultOpen])
 
   const toggle = useCallback(() => {
     setOpen((prev) => {
@@ -129,17 +131,15 @@ export function Sidebar({
         showToggle={showToggle}
       />
 
-      {open &&
-        (panel ? (
-          panel({ id: DESKTOP_PANEL_ID, className: "hidden md:flex" })
-        ) : (
-          <SectionPanel
-            id={DESKTOP_PANEL_ID}
-            section={panelSection}
-            activeHref={activeHref}
-            className="hidden md:flex"
-          />
-        ))}
+      {open && (
+        <SidePanel id={DESKTOP_PANEL_ID} className="hidden md:flex">
+          {panel ? (
+            panel({ id: DESKTOP_PANEL_ID, className: "hidden md:flex" })
+          ) : (
+            <SectionPanel section={panelSection} activeHref={activeHref} />
+          )}
+        </SidePanel>
+      )}
 
       {mobileOpen && (
         <div className="md:hidden">
@@ -149,16 +149,13 @@ export function Sidebar({
             onClick={closeMobile}
             className="fixed inset-0 z-40 bg-black/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           />
-          {panel ? (
-            panel({ id: MOBILE_PANEL_ID, className: "absolute left-16 top-0 z-50 flex shadow-lg" })
-          ) : (
-            <SectionPanel
-              id={MOBILE_PANEL_ID}
-              section={panelSection}
-              activeHref={activeHref}
-              className="absolute left-16 top-0 z-50 flex shadow-lg"
-            />
-          )}
+          <SidePanel id={MOBILE_PANEL_ID} className="absolute left-16 top-0 z-50 flex shadow-lg">
+            {panel ? (
+              panel({ id: MOBILE_PANEL_ID, className: "absolute left-16 top-0 z-50 flex shadow-lg" })
+            ) : (
+              <SectionPanel section={panelSection} activeHref={activeHref} />
+            )}
+          </SidePanel>
         </div>
       )}
     </div>

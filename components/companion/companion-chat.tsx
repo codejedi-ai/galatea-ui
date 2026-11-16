@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport, type UIMessage } from "ai"
-import { AlertCircle, KeyRound, PanelLeftClose, PanelLeftOpen, Plus, Send, Square } from "lucide-react"
+import { AlertCircle, KeyRound, Send, Square } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
@@ -22,22 +22,10 @@ function messageText(m: UIMessage) {
 
 export function CompanionChat({
   conversationId,
-  title,
-  onNew,
   onActivity,
-  panelOpen,
-  mobilePanelOpen,
-  onTogglePanel,
-  onToggleMobilePanel,
 }: {
   conversationId: string | null
-  title: string
-  onNew: () => void
   onActivity: (id: string, patch: ConversationActivity) => void
-  panelOpen: boolean
-  mobilePanelOpen: boolean
-  onTogglePanel: () => void
-  onToggleMobilePanel: () => void
 }) {
   const [history, setHistory] = useState<{ id: string; messages: UIMessage[] } | null>(null)
   const initialMessages = history && history.id === conversationId ? history.messages : null
@@ -69,39 +57,6 @@ export function CompanionChat({
 
   return (
     <div className="flex h-full min-h-0 w-full flex-1 flex-col">
-      <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border px-4 py-3 md:px-6">
-        <div className="flex min-w-0 items-center gap-2">
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="hidden shrink-0 md:inline-flex"
-            aria-label={panelOpen ? "Collapse chats" : "Expand chats"}
-            aria-expanded={panelOpen}
-            aria-controls="section-panel"
-            onClick={onTogglePanel}
-          >
-            {panelOpen ? <PanelLeftClose className="h-5 w-5" /> : <PanelLeftOpen className="h-5 w-5" />}
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="shrink-0 md:hidden"
-            aria-label={mobilePanelOpen ? "Collapse chats" : "Expand chats"}
-            aria-expanded={mobilePanelOpen}
-            aria-controls="section-panel-mobile"
-            onClick={onToggleMobilePanel}
-          >
-            {mobilePanelOpen ? <PanelLeftClose className="h-5 w-5" /> : <PanelLeftOpen className="h-5 w-5" />}
-          </Button>
-          <h1 className="truncate text-lg font-semibold leading-none tracking-tight">{title}</h1>
-        </div>
-        <Button variant="outline" size="sm" onClick={onNew} disabled={!conversationId}>
-          <Plus className="mr-1 h-4 w-4" />
-          New chat
-        </Button>
-      </div>
       {conversationId && initialMessages ? (
         <ChatSession
           key={conversationId}

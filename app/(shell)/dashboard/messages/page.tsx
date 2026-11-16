@@ -5,7 +5,6 @@ import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
-import { Sidebar } from "@/components/swipe/sidebar"
 import { Search, Send, Paperclip, MoreVertical, Phone, Video } from "lucide-react"
 
 // Mock data for conversations
@@ -106,10 +105,7 @@ export default function MessagesPage() {
   const handleSendMessage = () => {}
 
   return (
-    <div className="flex h-screen overflow-hidden">
-      <Sidebar />
-      <main className="flex-1 min-w-0">
-    <div className="h-screen flex flex-col">
+    <div className="flex h-full min-h-0 flex-col">
       <div className="flex h-full">
         {/* Conversation List */}
         <div className="w-full md:w-80 lg:w-96 border-r border-border bg-card overflow-hidden flex flex-col">
@@ -267,8 +263,6 @@ export default function MessagesPage() {
           )}
         </div>
       </div>
-    </div>
-      </main>
     </div>
   )
 }

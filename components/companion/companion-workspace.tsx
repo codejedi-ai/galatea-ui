@@ -1,9 +1,9 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
-import { Sidebar, usePersistedOpen } from "@/components/swipe/sidebar"
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react"
+import { Plus } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import { ChatSidebar } from "@/components/companion/chat-sidebar"
-import { CompanionChat } from "@/components/companion/companion-chat"
 import {
   applyConversationActivity,
   readConversationState,
@@ -20,14 +20,20 @@ function newConversationId() {
     : `c-${Date.now()}-${Math.random().toString(36).slice(2)}`
 }
 
-const CHAT_PANEL_KEY = "galatea.nav.chatPanelOpen"
+interface CompanionState {
+  conversations: CompanionConversation[]
+  activeId: string | null
+  title: string
+  select: (id: string) => void
+  startNew: () => void
+  onActivity: (id: string, patch: ConversationActivity) => void
+}
 
-export function CompanionWorkspace() {
+const CompanionContext = createContext<CompanionState | null>(null)
+
+export function CompanionProvider({ children }: { children: ReactNode }) {
   const [conversations, setConversations] = useState<CompanionConversation[]>([])
   const [activeId, setActiveId] = useState<string | null>(null)
-  const panel = usePersistedOpen(CHAT_PANEL_KEY)
-  const [mobileOpen, setMobileOpen] = useState(false)
-  const toggleMobile = useCallback(() => setMobileOpen((v) => !v), [])
 
   useEffect(() => {
     const state = readConversationState(localStorage, newConversationId)
@@ -63,40 +69,38 @@ export function CompanionWorkspace() {
     })
   }, [])
 
-  const activeTitle = conversations.find((c) => c.id === activeId)?.title ?? "Companion"
+  const title = conversations.find((c) => c.id === activeId)?.title ?? "Companion"
 
   return (
-    <div className="flex h-screen overflow-hidden">
-      <Sidebar
-        storageKey={CHAT_PANEL_KEY}
-        open={panel.open}
-        onToggleDesktop={panel.toggle}
-        mobileOpen={mobileOpen}
-        onToggleMobile={toggleMobile}
-        showToggle={false}
-        panel={({ id, className }) => (
-          <ChatSidebar
-            id={id}
-            className={className}
-            conversations={conversations}
-            activeId={activeId}
-            onSelect={select}
-            onNew={startNew}
-          />
-        )}
-      />
-      <main className="flex min-w-0 flex-1 flex-col overflow-hidden bg-galatea-darker">
-        <CompanionChat
-          conversationId={activeId}
-          title={activeTitle}
-          onNew={startNew}
-          onActivity={onActivity}
-          panelOpen={panel.open}
-          mobilePanelOpen={mobileOpen}
-          onTogglePanel={panel.toggle}
-          onToggleMobilePanel={toggleMobile}
-        />
-      </main>
-    </div>
+    <CompanionContext.Provider value={{ conversations, activeId, title, select, startNew, onActivity }}>
+      {children}
+    </CompanionContext.Provider>
+  )
+}
+
+export function useCompanionState() {
+  const state = useContext(CompanionContext)
+  if (!state) throw new Error("useCompanionState must be used inside CompanionProvider")
+  return state
+}
+
+/** Top-bar content for the companion chat: the conversation title and New chat. Lives in the shell header. */
+export function CompanionHeader() {
+  const { activeId, title, startNew } = useCompanionState()
+  return (
+    <>
+      <h1 className="truncate text-base font-semibold leading-none tracking-tight">{title}</h1>
+      <Button variant="outline" size="sm" onClick={startNew} disabled={!activeId} className="shrink-0">
+        <Plus className="mr-1 h-4 w-4" />
+        New chat
+      </Button>
+    </>
+  )
+}
+
+export function CompanionChatSidebar() {
+  const { conversations, activeId, select, startNew } = useCompanionState()
+  return (
+    <ChatSidebar conversations={conversations} activeId={activeId} onSelect={select} onNew={startNew} />
   )
 }

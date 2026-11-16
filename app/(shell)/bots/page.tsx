@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 import { Bot as BotIcon, Pencil, Plus, Trash2 } from "lucide-react"
-import { Sidebar } from "@/components/swipe/sidebar"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   AlertDialog,
@@ -60,9 +59,7 @@ export default function BotsPage() {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden">
-      <Sidebar />
-      <main className="flex-1 overflow-y-auto bg-galatea-darker p-8">
+    <div className="h-full overflow-y-auto p-8">
         <div className="max-w-5xl mx-auto">
           <div className="flex items-center justify-between mb-8">
             <h1 className="text-2xl font-bold text-foreground">My Bots</h1>
@@ -136,7 +133,6 @@ export default function BotsPage() {
             </div>
           )}
         </div>
-      </main>
     </div>
   )
 }
