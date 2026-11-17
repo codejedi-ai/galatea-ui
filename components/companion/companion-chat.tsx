@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport, type UIMessage } from "ai"
 import { AlertCircle, KeyRound, Send, Square } from "lucide-react"
@@ -102,7 +102,16 @@ function ChatSession({
   })
   const [input, setInput] = useState("")
   const bottomRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
   const busy = status === "submitted" || status === "streaming"
+
+  useLayoutEffect(() => {
+    const el = inputRef.current
+    if (!el) return
+    // Explicit height beats flex stretch, so the box can shrink back to one line.
+    el.style.height = "0px"
+    el.style.height = `${el.scrollHeight}px`
+  }, [input])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -174,13 +183,14 @@ function ChatSession({
           ))}
 
         <form
-          className="mx-auto flex w-full max-w-4xl items-end gap-2"
+          className="mx-auto flex w-full max-w-4xl items-stretch gap-2"
           onSubmit={(e) => {
             e.preventDefault()
             submit()
           }}
         >
           <Textarea
+            ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => {
@@ -190,15 +200,21 @@ function ChatSession({
               }
             }}
             placeholder="Message your companion..."
-            rows={2}
-            className="resize-none"
+            rows={1}
+            className="max-h-40 min-h-10 resize-none"
           />
           {busy ? (
-            <Button type="button" variant="outline" onClick={() => void stop()} aria-label="Stop">
+            <Button
+              type="button"
+              variant="outline"
+              className="h-auto self-stretch"
+              onClick={() => void stop()}
+              aria-label="Stop"
+            >
               <Square className="h-4 w-4" />
             </Button>
           ) : (
-            <Button type="submit" disabled={!input.trim()} aria-label="Send">
+            <Button type="submit" className="h-auto self-stretch" disabled={!input.trim()} aria-label="Send">
               <Send className="h-4 w-4" />
             </Button>
           )}

@@ -77,10 +77,27 @@ export function ProfileContent() {
   const inputClass = "w-full bg-muted border border-border rounded-lg px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
 
   return (
-    <div className="w-full p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-3xl font-bold text-foreground">My Profile</h1>
+    <div className="w-full">
+      {/* Tabs sit flush under the shell top bar. */}
+      <div className="flex border-b border-border">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={cn(
+              "px-6 py-3 font-medium transition-colors",
+              activeTab === tab.id
+                ? "text-primary border-b-2 border-primary"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="p-6">
+      <div className="flex items-center justify-end mb-8">
         <div className="flex gap-3">
           {isEditing ? (
             <>
@@ -109,24 +126,6 @@ export function ProfileContent() {
             </button>
           )}
         </div>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex border-b border-border mb-8">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={cn(
-              "px-6 py-3 font-medium transition-colors",
-              activeTab === tab.id
-                ? "text-primary border-b-2 border-primary"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            {tab.label}
-          </button>
-        ))}
       </div>
 
       {/* Profile Tab */}
@@ -391,6 +390,7 @@ export function ProfileContent() {
           </div>
         </div>
       )}
+      </div>
     </div>
   )
 }

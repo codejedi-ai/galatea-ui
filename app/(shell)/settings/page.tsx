@@ -9,7 +9,6 @@ const links = [
 export default function SettingsPage() {
   return (
     <div className="mx-auto max-w-3xl p-8">
-      <h1 className="mb-6 text-3xl font-bold text-foreground">Settings</h1>
       <div className="grid gap-4 sm:grid-cols-2">
         {links.map((l) => (
           <Link key={l.href} href={l.href} className="rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">

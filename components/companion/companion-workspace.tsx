@@ -31,16 +31,24 @@ interface CompanionState {
 
 const CompanionContext = createContext<CompanionState | null>(null)
 
-export function CompanionProvider({ children }: { children: ReactNode }) {
+export function CompanionProvider({
+  children,
+  persist = true,
+}: {
+  children: ReactNode
+  /** Read and write conversation storage. The shell leaves this mounted and turns persistence on only for the chat. */
+  persist?: boolean
+}) {
   const [conversations, setConversations] = useState<CompanionConversation[]>([])
   const [activeId, setActiveId] = useState<string | null>(null)
 
   useEffect(() => {
+    if (!persist) return
     const state = readConversationState(localStorage, newConversationId)
     setConversations(state.conversations)
     setActiveId(state.activeId)
     writeConversationState(localStorage, state.conversations, state.activeId)
-  }, [])
+  }, [persist])
 
   const select = useCallback((id: string) => {
     setActiveId(id)

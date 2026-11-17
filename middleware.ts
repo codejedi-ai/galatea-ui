@@ -1,11 +1,21 @@
 import { NextRequest, NextResponse } from "next/server"
 import { ACCESS_TOKEN_COOKIE } from "@/lib/session"
 
-// Runs on the Next.js server before the page renders. Only guards the real,
-// backend-wired /bots route — the dating pages (discover/dashboard/profile)
-// are left exactly as they were (unauthenticated-accessible mock UI), not in
-// scope here.
+// `/` is the only public product page. Sign-in, sign-up, and the auth API
+// routes stay reachable so a session can be created. Every other matched
+// request needs the access-token cookie; otherwise it redirects to /signin.
+const PUBLIC_PAGES = new Set(["/", "/signin", "/signup"])
+
+function isPublic(pathname: string) {
+  if (PUBLIC_PAGES.has(pathname)) return true
+  return pathname === "/api/auth" || pathname.startsWith("/api/auth/")
+}
+
 export function middleware(req: NextRequest) {
+  if (isPublic(req.nextUrl.pathname)) {
+    return NextResponse.next()
+  }
+
   const hasSession = req.cookies.has(ACCESS_TOKEN_COOKIE)
   if (!hasSession) {
     const signInUrl = new URL("/signin", req.url)
@@ -15,5 +25,7 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/bots/:path*", "/settings/:path*", "/companion/:path*", "/voice/:path*"],
+  matcher: [
+    "/((?!_next/|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+  ],
 }

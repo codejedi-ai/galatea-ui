@@ -1,5 +1,4 @@
 import {
-  Bot,
   Compass,
   HeartHandshake,
   KeyRound,
@@ -38,21 +37,28 @@ export const NAV_SECTIONS: NavSection[] = [
     ],
   },
   {
-    id: "bots",
-    label: "Bots",
-    icon: Bot,
-    items: [{ label: "My Bots", href: "/bots", icon: Bot }],
-  },
-  {
     id: "discover",
     label: "Discover",
     icon: Compass,
-    items: [
-      { label: "Discover", href: "/discover", icon: Sparkles },
-      { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-      { label: "Messages", href: "/dashboard/messages", icon: MessageSquare },
-      { label: "Profile", href: "/profile", icon: User },
-    ],
+    items: [{ label: "Discover", href: "/discover", icon: Sparkles }],
+  },
+  {
+    id: "profile",
+    label: "Profile",
+    icon: User,
+    items: [{ label: "Profile", href: "/profile", icon: User }],
+  },
+  {
+    id: "dashboard",
+    label: "Dashboard",
+    icon: LayoutDashboard,
+    items: [{ label: "Dashboard", href: "/dashboard", icon: LayoutDashboard }],
+  },
+  {
+    id: "messages",
+    label: "Messages",
+    icon: MessageSquare,
+    items: [{ label: "Messages", href: "/dashboard/messages", icon: MessageSquare }],
   },
   {
     id: "settings",
@@ -63,6 +69,12 @@ export const NAV_SECTIONS: NavSection[] = [
       { label: "Integrations", href: "/settings/integrations", icon: KeyRound },
       { label: "Agents", href: "/settings/agents", icon: Plug },
     ],
+  },
+  {
+    id: "plugins",
+    label: "Plugins",
+    icon: Plug,
+    items: [{ label: "Plugins", href: "/plugins", icon: Plug }],
   },
 ]
 
