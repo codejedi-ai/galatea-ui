@@ -1,5 +1,6 @@
 import {
   Compass,
+  Globe,
   HeartHandshake,
   KeyRound,
   LayoutDashboard,
@@ -52,7 +53,10 @@ export const NAV_SECTIONS: NavSection[] = [
     id: "dashboard",
     label: "Dashboard",
     icon: LayoutDashboard,
-    items: [{ label: "Dashboard", href: "/dashboard", icon: LayoutDashboard }],
+    items: [
+      { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+      { label: "Data residency", href: "/dashboard/data-residency", icon: Globe },
+    ],
   },
   {
     id: "messages",

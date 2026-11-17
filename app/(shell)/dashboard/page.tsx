@@ -1,3 +1,4 @@
+import { ProviderManagement, type ProviderId } from "@/components/dashboard/provider-management"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { RUNTIMES } from "@/lib/agents/runtimes"
@@ -49,20 +50,278 @@ function statusBadgeClass(status: Status): string {
   return ""
 }
 
+/** The gateway key belongs to whichever provider the configured model id names. */
+function providerForGatewayModel(modelId: string): ProviderId | null {
+  const prefix = modelId.toLowerCase().split("/")[0]
+  if (prefix === "openai") return "openai"
+  if (prefix === "google" || prefix === "gemini") return "gemini"
+  if (prefix === "anthropic") return "anthropic"
+  return null
+}
+
 export default async function DashboardPage() {
   const user = await getCurrentUser()
   const modelConnected = user ? (await getCredentialStatus(user.userId)).aiGateway : false
   const modelId = process.env.COMPANION_DEFAULT_MODEL || DEFAULT_COMPANION_MODEL
+  const gatewayProvider = providerForGatewayModel(modelId)
   const chatRuntime = RUNTIMES.find((runtime) => runtime.id === "none")
   const upcomingRuntimes = RUNTIMES.filter((runtime) => runtime.status === "coming-soon").map((runtime) => runtime.name)
 
-  const configuration: ConfigRow[] = [
+  const providerStatus = (id: ProviderId): "Connected" | "Not set" =>
+    modelConnected && gatewayProvider === id ? "Connected" : "Not set"
+
+  const geographies = [
     {
-      name: "Model provider",
-      value: modelConnected ? modelId : "Not set",
-      detail: "Vercel AI Gateway",
-      status: modelConnected ? "Connected" : "Not set",
+      id: "europe" as const,
+      label: "European",
+      flag: "🇪🇺",
+      routed: "Data is processed in the European Union.",
+      benefits: "The benefit is that data can stay in the EU under GDPR.",
+      risks: "The risk is that fewer models are available.",
+      providers: [
+        {
+          id: "mistral" as const,
+          name: "Mistral",
+          description: "Mistral models from Mistral AI.",
+          status: "Not set" as const,
+        },
+        {
+          id: "aleph-alpha" as const,
+          name: "Aleph Alpha",
+          description: "Models from Aleph Alpha.",
+          status: "Not set" as const,
+        },
+        {
+          id: "salamandra-aguila" as const,
+          name: "Salamandra and Aguila",
+          description: "Barcelona Supercomputing Center's open-weight Spanish and Iberian models.",
+          status: "Not set" as const,
+        },
+      ],
     },
+    {
+      id: "usa" as const,
+      label: "USA",
+      flag: "🇺🇸",
+      routed: "Data is processed in the United States.",
+      benefits: "The benefit is a broad model choice and mature APIs.",
+      risks: "The risk is that data leaves the user's country and is subject to US law.",
+      providers: [
+        {
+          id: "openai" as const,
+          name: "OpenAI",
+          description: gatewayProvider === "openai" ? `GPT models from OpenAI. ${modelId}` : "GPT models from OpenAI.",
+          status: providerStatus("openai"),
+        },
+        {
+          id: "anthropic" as const,
+          name: "Anthropic",
+          description:
+            gatewayProvider === "anthropic"
+              ? `Claude models from Anthropic. ${modelId}`
+              : "Claude models from Anthropic.",
+          status: providerStatus("anthropic"),
+        },
+        {
+          id: "gemini" as const,
+          name: "Gemini",
+          description: gatewayProvider === "gemini" ? `Google Gemini models. ${modelId}` : "Google Gemini models.",
+          status: providerStatus("gemini"),
+        },
+        {
+          id: "venice" as const,
+          name: "Venice AI",
+          description: "Models from Venice AI.",
+          status: "Not set" as const,
+        },
+        {
+          id: "xai" as const,
+          name: "xAI Grok",
+          description: "Grok models from xAI.",
+          status: "Not set" as const,
+        },
+        {
+          id: "meta" as const,
+          name: "Meta",
+          description: "Llama models from Meta.",
+          status: "Not set" as const,
+        },
+      ],
+    },
+    {
+      id: "china" as const,
+      label: "China",
+      flag: "🇨🇳",
+      routed: "Data is processed in China.",
+      benefits: "The benefit is strong low-cost models.",
+      risks: "The risk is that data is subject to Chinese law and crosses the border if the user is elsewhere.",
+      providers: [
+        {
+          id: "deepseek" as const,
+          name: "DeepSeek",
+          description: "DeepSeek models.",
+          status: "Not set" as const,
+        },
+        {
+          id: "qwen" as const,
+          name: "Qwen (Alibaba)",
+          description: "Qwen models from Alibaba.",
+          status: "Not set" as const,
+        },
+        {
+          id: "kimi" as const,
+          name: "Kimi (Moonshot)",
+          description: "Kimi models from Moonshot.",
+          status: "Not set" as const,
+        },
+        {
+          id: "glm" as const,
+          name: "GLM (Zhipu)",
+          description: "GLM models from Zhipu.",
+          status: "Not set" as const,
+        },
+        {
+          id: "minimax" as const,
+          name: "MiniMax",
+          description: "MiniMax models.",
+          status: "Not set" as const,
+        },
+        {
+          id: "doubao" as const,
+          name: "Doubao (ByteDance)",
+          description: "Doubao models from ByteDance.",
+          status: "Not set" as const,
+        },
+      ],
+    },
+    {
+      id: "canada" as const,
+      label: "Canada",
+      flag: "🇨🇦",
+      routed: "Cohere is headquartered in Canada. Where data is processed depends on the provider's hosting terms.",
+      benefits: "Canadian company, so it is subject to Canadian privacy law.",
+      risks: "Smaller model catalog than the USA and China options, and data residency must be checked per deployment.",
+      providers: [
+        {
+          id: "cohere" as const,
+          name: "Cohere",
+          description: "Enterprise language models from Cohere, headquartered in Canada.",
+          status: "Not set" as const,
+        },
+      ],
+    },
+    {
+      id: "russia" as const,
+      label: "Russia",
+      flag: "🇷🇺",
+      routed:
+        "Russian providers process data in Russia, which requires personal data of Russian citizens to be stored on servers in Russia.",
+      benefits: "Strong Russian-language and local business and legal context.",
+      risks:
+        "Subject to Russian law and state access (for example SORM surveillance requirements), and some Western services and chips are restricted by sanctions.",
+      providers: [
+        {
+          id: "gigachat" as const,
+          name: "GigaChat",
+          description: "Sber's Russian multimodal family, with open-weight releases.",
+          status: "Not set" as const,
+        },
+        {
+          id: "yandexgpt" as const,
+          name: "YandexGPT / Alice AI",
+          description: "YandexGPT and Alice AI from Yandex.",
+          status: "Not set" as const,
+        },
+        {
+          id: "t-lite" as const,
+          name: "T-Lite / T-Pro",
+          description: "T-Lite and T-Pro from T-Bank.",
+          status: "Not set" as const,
+        },
+        {
+          id: "vikhrmodels" as const,
+          name: "Vikhrmodels",
+          description: "Open-source community fine-tunes for Russian.",
+          status: "Not set" as const,
+        },
+      ],
+    },
+    {
+      id: "india" as const,
+      label: "India",
+      flag: "🇮🇳",
+      routed: "Indian providers process data in India, under the Digital Personal Data Protection Act, 2023.",
+      benefits: "Strong support for 22 Indian languages, Hinglish, and voice-first use.",
+      risks:
+        "Government access can be required under Indian law (for example IT Act section 69), and the DPDP Act's rules are still being implemented.",
+      providers: [
+        {
+          id: "sarvam" as const,
+          name: "Sarvam AI",
+          description: "Sarvam-30B and Sarvam-105B for Indic languages and voice.",
+          status: "Not set" as const,
+        },
+        {
+          id: "krutrim" as const,
+          name: "Krutrim",
+          description: "Krutrim-2 from Ola, for 22 Indian languages.",
+          status: "Not set" as const,
+        },
+        {
+          id: "bharatgpt" as const,
+          name: "BharatGPT",
+          description: "Multilingual enterprise and public-sector assistant from CoRover.ai.",
+          status: "Not set" as const,
+        },
+        {
+          id: "ai4bharat" as const,
+          name: "AI4Bharat",
+          description: "Open Indic datasets and IndicTrans2 from IIT Madras.",
+          status: "Not set" as const,
+        },
+      ],
+    },
+    {
+      id: "latin-america" as const,
+      label: "Latin America",
+      flag: "🌎",
+      routed:
+        "Processing depends on the provider and country. Brazil, Chile, Mexico, Argentina and others each have their own personal-data laws.",
+      benefits: "Models trained on Spanish, Portuguese, and Indigenous languages, and regional legal and cultural context.",
+      risks:
+        "Protection and oversight vary by country, and the open-weight and smaller-budget models may have fewer safety guardrails and less support.",
+      providers: [
+        {
+          id: "latamgpt" as const,
+          name: "LatamGPT",
+          description: "Open-source 70B model built on Llama 3.1, from Chile's CENIA with institutions in 15 countries.",
+          status: "Not set" as const,
+        },
+        {
+          id: "sabia" as const,
+          name: "Sabia",
+          description: "Portuguese model from Maritaca AI in Brazil.",
+          status: "Not set" as const,
+        },
+        {
+          id: "tucano-bode" as const,
+          name: "Tucano and Bode",
+          description: "Open-weight Brazilian models.",
+          status: "Not set" as const,
+        },
+      ],
+    },
+  ]
+
+  const compatible = {
+    id: "openai-compatible" as const,
+    name: "OpenAI-compatible",
+    description: "Other APIs that speak the OpenAI protocol.",
+    status: "Not set" as const,
+    baseUrl: "Not set",
+  }
+
+  const configuration: ConfigRow[] = [
     {
       name: "Voice",
       value: "Not set",
@@ -94,6 +353,11 @@ export default async function DashboardPage() {
           <h2 id="configuration-heading" className="text-lg font-semibold text-foreground">
             Configuration
           </h2>
+          <ProviderManagement
+            geographies={geographies}
+            compatible={compatible}
+            activeId={modelConnected ? gatewayProvider : null}
+          />
           <div className="grid gap-4 sm:grid-cols-2">
             {configuration.map((row) => (
               <Card key={row.name}>
